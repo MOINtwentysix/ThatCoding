@@ -1,0 +1,126 @@
+name: Build All Platforms
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: "GitHub Release mit den Binaries erstellen"
+        type: boolean
+        default: false
+      tag_name:
+        description: "Release-Tag (z. B. v2.2.0-tc)"
+        type: string
+        default: "v2.2.0-thatcoding"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build All Targets
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.4
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Prepare models catalog
+        run: |
+          mkdir -p .cache/models-catalog
+          bun packages/core/script/update-models-snapshot.ts .cache/models-catalog/api.json
+
+      - name: Build for all operating systems
+        working-directory: packages/cli
+        run: bun run build && rm -rf dist/.bun
+        env:
+          BUN_COMPILE_RELEASE: bun-v1.4.4
+          OPENCODE_MODELS_SNAPSHOT: ${{ github.workspace }}/.cache/models-catalog/api.json
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Package binaries into archives
+        run: |
+          mkdir -p dist-archives
+
+          # Windows x64
+          if [ -f packages/cli/dist/cli-win32-x64/bin/opencode.exe ]; then
+            mkdir -p tmp-win-x64
+            cp packages/cli/dist/cli-win32-x64/bin/opencode.exe tmp-win-x64/thatcoding.exe
+            zip -j dist-archives/thatcoding-windows-x64.zip tmp-win-x64/thatcoding.exe
+            rm -rf tmp-win-x64
+          fi
+
+          # Windows ARM64
+          if [ -f packages/cli/dist/cli-win32-arm64/bin/opencode.exe ]; then
+            mkdir -p tmp-win-arm64
+            cp packages/cli/dist/cli-win32-arm64/bin/opencode.exe tmp-win-arm64/thatcoding.exe
+            zip -j dist-archives/thatcoding-windows-arm64.zip tmp-win-arm64/thatcoding.exe
+            rm -rf tmp-win-arm64
+          fi
+
+          # Linux x64
+          if [ -f packages/cli/dist/cli-linux-x64/bin/opencode ]; then
+            mkdir -p tmp-linux-x64
+            cp packages/cli/dist/cli-linux-x64/bin/opencode tmp-linux-x64/thatcoding
+            chmod +x tmp-linux-x64/thatcoding
+            tar -czvf dist-archives/thatcoding-linux-x64.tar.gz -C tmp-linux-x64 thatcoding
+            rm -rf tmp-linux-x64
+          fi
+
+          # Linux ARM64
+          if [ -f packages/cli/dist/cli-linux-arm64/bin/opencode ]; then
+            mkdir -p tmp-linux-arm64
+            cp packages/cli/dist/cli-linux-arm64/bin/opencode tmp-linux-arm64/thatcoding
+            chmod +x tmp-linux-arm64/thatcoding
+            tar -czvf dist-archives/thatcoding-linux-arm64.tar.gz -C tmp-linux-arm64 thatcoding
+            rm -rf tmp-linux-arm64
+          fi
+
+          # macOS Apple Silicon (ARM64)
+          if [ -f packages/cli/dist/cli-darwin-arm64/bin/opencode ]; then
+            mkdir -p tmp-darwin-arm64
+            cp packages/cli/dist/cli-darwin-arm64/bin/opencode tmp-darwin-arm64/thatcoding
+            chmod +x tmp-darwin-arm64/thatcoding
+            tar -czvf dist-archives/thatcoding-darwin-arm64.tar.gz -C tmp-darwin-arm64 thatcoding
+            rm -rf tmp-darwin-arm64
+          fi
+
+          # macOS Intel (x64)
+          if [ -f packages/cli/dist/cli-darwin-x64/bin/opencode ]; then
+            mkdir -p tmp-darwin-x64
+            cp packages/cli/dist/cli-darwin-x64/bin/opencode tmp-darwin-x64/thatcoding
+            chmod +x tmp-darwin-x64/thatcoding
+            tar -czvf dist-archives/thatcoding-darwin-x64.tar.gz -C tmp-darwin-x64 thatcoding
+            rm -rf tmp-darwin-x64
+          fi
+
+      - name: Upload release archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: thatcoding-archives
+          path: dist-archives/*
+
+      - name: Create GitHub Release
+        if: ${{ inputs.create_release == true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag_name }}
+          name: ${{ inputs.tag_name }}
+          draft: false
+          prerelease: false
+          files: dist-archives/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
