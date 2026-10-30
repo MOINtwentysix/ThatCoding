@@ -5,7 +5,6 @@ REPO="MOINtwentysix/ThatCoding"
 INSTALL_DIR="$HOME/.thatcoding/bin"
 APP_NAME="thatcoding"
 COMMAND_NAME="tac"
-DEFAULT_FALLBACK_TAG="v1.0.0-beta-1"
 
 MUTED='\033[0;2m'
 GREEN='\033[0;32m'
@@ -51,21 +50,17 @@ echo -e "${MUTED}Detected platform: ${os}-${arch}${NC}"
 # Determine release tag (supports regular releases AND pre-releases)
 TAG="${VERSION:-}"
 if [ -z "$TAG" ]; then
-    AUTH_HEADER=()
-    if [ -n "${GITHUB_TOKEN:-}" ]; then
-        AUTH_HEADER=(-H "Authorization: Bearer $GITHUB_TOKEN")
-    fi
-    API_TAG=$(curl -s "${AUTH_HEADER[@]}" -H "User-Agent: ThatCoding-Installer" "https://api.github.com/repos/${REPO}/releases" 2>/dev/null | grep '"tag_name":' | head -n 1 | cut -d '"' -f 4 || true)
+    API_TAG=$(curl -s "https://api.github.com/repos/${REPO}/releases" | grep '"tag_name":' | head -n 1 | cut -d '"' -f 4 || true)
     if [ -n "$API_TAG" ]; then
         TAG="$API_TAG"
-    else
-        # Fallback to default tag if API is rate-limited
-        TAG="$DEFAULT_FALLBACK_TAG"
     fi
 fi
 
-echo -e "${MUTED}Target release: ${TAG}${NC}"
-BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+if [ -n "$TAG" ]; then
+    BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+else
+    BASE_URL="https://github.com/${REPO}/releases/latest/download"
+fi
 
 mkdir -p "$INSTALL_DIR"
 TMP_DIR=$(mktemp -d)
@@ -76,10 +71,10 @@ if [ "$os" = "windows" ]; then
     URL="${BASE_URL}/${ARCHIVE_FILE}"
     echo -e "${MUTED}Downloading from ${URL}...${NC}"
     if ! curl -fsSL "$URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
-        FALLBACK_URL="https://github.com/${REPO}/releases/download/${DEFAULT_FALLBACK_TAG}/${ARCHIVE_FILE}"
-        echo -e "${MUTED}Retrying with fallback ${FALLBACK_URL}...${NC}"
+        # Fallback to releases/latest if direct tag download fails
+        FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/${ARCHIVE_FILE}"
         if ! curl -fsSL "$FALLBACK_URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
-            echo -e "${RED}Failed to download ${ARCHIVE_FILE}${NC}"
+            echo -e "${RED}Failed to download release archive from ${URL} or ${FALLBACK_URL}${NC}"
             exit 1
         fi
     fi
@@ -101,10 +96,10 @@ else
     URL="${BASE_URL}/${ARCHIVE_FILE}"
     echo -e "${MUTED}Downloading from ${URL}...${NC}"
     if ! curl -fsSL "$URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
-        FALLBACK_URL="https://github.com/${REPO}/releases/download/${DEFAULT_FALLBACK_TAG}/${ARCHIVE_FILE}"
-        echo -e "${MUTED}Retrying with fallback ${FALLBACK_URL}...${NC}"
+        # Fallback to releases/latest if direct tag download fails
+        FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/${ARCHIVE_FILE}"
         if ! curl -fsSL "$FALLBACK_URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
-            echo -e "${RED}Failed to download ${ARCHIVE_FILE}${NC}"
+            echo -e "${RED}Failed to download release archive from ${URL} or ${FALLBACK_URL}${NC}"
             exit 1
         fi
     fi
