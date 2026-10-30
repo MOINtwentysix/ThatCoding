@@ -13,11 +13,21 @@ $Arch = if ([Environment]::Is64BitOperatingSystem) {
     Write-Error "Unsupported architecture (32-bit is not supported)."
 }
 
-$Tag = if ($env:VERSION) { $env:VERSION } else { "latest" }
-$BaseUrl = if ($Tag -eq "latest") {
-    "https://github.com/$Repo/releases/latest/download"
-} else {
+# Determine release tag (supports regular releases AND pre-releases)
+$Tag = $env:VERSION
+if (-not $Tag) {
+    try {
+        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases" -ErrorAction SilentlyContinue
+        if ($releases -and $releases.Count -gt 0) {
+            $Tag = $releases[0].tag_name
+        }
+    } catch {}
+}
+
+$BaseUrl = if ($Tag) {
     "https://github.com/$Repo/releases/download/$Tag"
+} else {
+    "https://github.com/$Repo/releases/latest/download"
 }
 
 $ArchiveFile = "thatcoding-windows-$Arch.zip"
@@ -27,7 +37,13 @@ New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 $TempZip = Join-Path $env:TEMP $ArchiveFile
 
 Write-Host "Downloading $Url..." -ForegroundColor DarkGray
-Invoke-WebRequest -Uri $Url -OutFile $TempZip
+try {
+    Invoke-WebRequest -Uri $Url -OutFile $TempZip
+} catch {
+    $FallbackUrl = "https://github.com/$Repo/releases/latest/download/$ArchiveFile"
+    Write-Host "Direct download failed, trying $FallbackUrl..." -ForegroundColor DarkGray
+    Invoke-WebRequest -Uri $FallbackUrl -OutFile $TempZip
+}
 
 Write-Host "Extracting to $InstallDir..." -ForegroundColor DarkGray
 Expand-Archive -Path $TempZip -DestinationPath $InstallDir -Force

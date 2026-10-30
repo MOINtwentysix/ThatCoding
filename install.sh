@@ -47,12 +47,19 @@ fi
 
 echo -e "${MUTED}Detected platform: ${os}-${arch}${NC}"
 
-# Release archive URL
-TAG=${VERSION:-latest}
-if [ "$TAG" = "latest" ]; then
-    BASE_URL="https://github.com/${REPO}/releases/latest/download"
-else
+# Determine release tag (supports regular releases AND pre-releases)
+TAG="${VERSION:-}"
+if [ -z "$TAG" ]; then
+    API_TAG=$(curl -s "https://api.github.com/repos/${REPO}/releases" | grep '"tag_name":' | head -n 1 | cut -d '"' -f 4 || true)
+    if [ -n "$API_TAG" ]; then
+        TAG="$API_TAG"
+    fi
+fi
+
+if [ -n "$TAG" ]; then
     BASE_URL="https://github.com/${REPO}/releases/download/${TAG}"
+else
+    BASE_URL="https://github.com/${REPO}/releases/latest/download"
 fi
 
 mkdir -p "$INSTALL_DIR"
@@ -64,8 +71,12 @@ if [ "$os" = "windows" ]; then
     URL="${BASE_URL}/${ARCHIVE_FILE}"
     echo -e "${MUTED}Downloading from ${URL}...${NC}"
     if ! curl -fsSL "$URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
-        echo -e "${RED}Failed to download ${URL}${NC}"
-        exit 1
+        # Fallback to releases/latest if direct tag download fails
+        FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/${ARCHIVE_FILE}"
+        if ! curl -fsSL "$FALLBACK_URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
+            echo -e "${RED}Failed to download release archive from ${URL} or ${FALLBACK_URL}${NC}"
+            exit 1
+        fi
     fi
     unzip -oq "$TMP_DIR/$ARCHIVE_FILE" -d "$INSTALL_DIR"
     
@@ -85,8 +96,12 @@ else
     URL="${BASE_URL}/${ARCHIVE_FILE}"
     echo -e "${MUTED}Downloading from ${URL}...${NC}"
     if ! curl -fsSL "$URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
-        echo -e "${RED}Failed to download ${URL}${NC}"
-        exit 1
+        # Fallback to releases/latest if direct tag download fails
+        FALLBACK_URL="https://github.com/${REPO}/releases/latest/download/${ARCHIVE_FILE}"
+        if ! curl -fsSL "$FALLBACK_URL" -o "$TMP_DIR/$ARCHIVE_FILE"; then
+            echo -e "${RED}Failed to download release archive from ${URL} or ${FALLBACK_URL}${NC}"
+            exit 1
+        fi
     fi
     tar -xzf "$TMP_DIR/$ARCHIVE_FILE" -C "$INSTALL_DIR"
     chmod +x "$INSTALL_DIR/thatcoding"
