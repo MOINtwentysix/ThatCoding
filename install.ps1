@@ -4,6 +4,7 @@ $ErrorActionPreference = 'Stop'
 $Repo = "MOINtwentysix/ThatCoding"
 $InstallDir = "$HOME\.thatcoding\bin"
 $CommandName = "tac"
+$DefaultFallbackTag = "v1.0.0-beta-1"
 
 Write-Host "Installing ThatCoding ($CommandName)..." -ForegroundColor Cyan
 
@@ -17,18 +18,21 @@ $Arch = if ([Environment]::Is64BitOperatingSystem) {
 $Tag = $env:VERSION
 if (-not $Tag) {
     try {
-        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases" -ErrorAction SilentlyContinue
+        $headers = @{ "User-Agent" = "ThatCoding-Installer" }
+        if ($env:GITHUB_TOKEN) { $headers["Authorization"] = "Bearer $env:GITHUB_TOKEN" }
+        $releases = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases" -Headers $headers -ErrorAction SilentlyContinue
         if ($releases -and $releases.Count -gt 0) {
             $Tag = $releases[0].tag_name
         }
     } catch {}
 }
 
-$BaseUrl = if ($Tag) {
-    "https://github.com/$Repo/releases/download/$Tag"
-} else {
-    "https://github.com/$Repo/releases/latest/download"
+if (-not $Tag) {
+    $Tag = $DefaultFallbackTag
 }
+
+Write-Host "Target release: $Tag" -ForegroundColor DarkGray
+$BaseUrl = "https://github.com/$Repo/releases/download/$Tag"
 
 $ArchiveFile = "thatcoding-windows-$Arch.zip"
 $Url = "$BaseUrl/$ArchiveFile"
@@ -40,7 +44,7 @@ Write-Host "Downloading $Url..." -ForegroundColor DarkGray
 try {
     Invoke-WebRequest -Uri $Url -OutFile $TempZip
 } catch {
-    $FallbackUrl = "https://github.com/$Repo/releases/latest/download/$ArchiveFile"
+    $FallbackUrl = "https://github.com/$Repo/releases/download/$DefaultFallbackTag/$ArchiveFile"
     Write-Host "Direct download failed, trying $FallbackUrl..." -ForegroundColor DarkGray
     Invoke-WebRequest -Uri $FallbackUrl -OutFile $TempZip
 }
