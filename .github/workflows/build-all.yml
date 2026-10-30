@@ -51,66 +51,94 @@ jobs:
           OPENCODE_MODELS_SNAPSHOT: ${{ github.workspace }}/.cache/models-catalog/api.json
           GH_TOKEN: ${{ github.token }}
 
+      - name: Inspect build output
+        run: |
+          echo "=== Built directories in packages/cli/dist: ==="
+          ls -la packages/cli/dist
+
       - name: Package binaries into archives
         run: |
           mkdir -p dist-archives
+          mkdir -p dist-windows
+          mkdir -p dist-linux
+          mkdir -p dist-macos
 
-          # Windows x64
-          if [ -f packages/cli/dist/cli-win32-x64/bin/opencode.exe ]; then
-            mkdir -p tmp-win-x64
-            cp packages/cli/dist/cli-win32-x64/bin/opencode.exe tmp-win-x64/thatcoding.exe
-            zip -j dist-archives/thatcoding-windows-x64.zip tmp-win-x64/thatcoding.exe
-            rm -rf tmp-win-x64
+          # ----------------- Windows x64 -----------------
+          if [ -f packages/cli/dist/cli-windows-x64/bin/opencode.exe ]; then
+            echo "Packaging Windows x64..."
+            cp packages/cli/dist/cli-windows-x64/bin/opencode.exe dist-archives/thatcoding-windows-x64.exe
+            cp packages/cli/dist/cli-windows-x64/bin/opencode.exe dist-windows/thatcoding.exe
+            (cd dist-windows && zip -j ../dist-archives/thatcoding-windows-x64.zip thatcoding.exe)
+            rm -f dist-windows/thatcoding.exe
+          else
+            echo "WARNING: packages/cli/dist/cli-windows-x64/bin/opencode.exe not found!"
           fi
 
-          # Windows ARM64
-          if [ -f packages/cli/dist/cli-win32-arm64/bin/opencode.exe ]; then
-            mkdir -p tmp-win-arm64
-            cp packages/cli/dist/cli-win32-arm64/bin/opencode.exe tmp-win-arm64/thatcoding.exe
-            zip -j dist-archives/thatcoding-windows-arm64.zip tmp-win-arm64/thatcoding.exe
-            rm -rf tmp-win-arm64
+          # ----------------- Windows ARM64 -----------------
+          if [ -f packages/cli/dist/cli-windows-arm64/bin/opencode.exe ]; then
+            echo "Packaging Windows ARM64..."
+            cp packages/cli/dist/cli-windows-arm64/bin/opencode.exe dist-archives/thatcoding-windows-arm64.exe
+            cp packages/cli/dist/cli-windows-arm64/bin/opencode.exe dist-windows/thatcoding.exe
+            (cd dist-windows && zip -j ../dist-archives/thatcoding-windows-arm64.zip thatcoding.exe)
+            rm -f dist-windows/thatcoding.exe
+          else
+            echo "WARNING: packages/cli/dist/cli-windows-arm64/bin/opencode.exe not found!"
           fi
 
-          # Linux x64
+          # ----------------- Linux x64 -----------------
           if [ -f packages/cli/dist/cli-linux-x64/bin/opencode ]; then
-            mkdir -p tmp-linux-x64
-            cp packages/cli/dist/cli-linux-x64/bin/opencode tmp-linux-x64/thatcoding
-            chmod +x tmp-linux-x64/thatcoding
-            tar -czvf dist-archives/thatcoding-linux-x64.tar.gz -C tmp-linux-x64 thatcoding
-            rm -rf tmp-linux-x64
+            echo "Packaging Linux x64..."
+            cp packages/cli/dist/cli-linux-x64/bin/opencode dist-linux/thatcoding
+            chmod +x dist-linux/thatcoding
+            tar -czvf dist-archives/thatcoding-linux-x64.tar.gz -C dist-linux thatcoding
+            rm -f dist-linux/thatcoding
           fi
 
-          # Linux ARM64
+          # ----------------- Linux ARM64 -----------------
           if [ -f packages/cli/dist/cli-linux-arm64/bin/opencode ]; then
-            mkdir -p tmp-linux-arm64
-            cp packages/cli/dist/cli-linux-arm64/bin/opencode tmp-linux-arm64/thatcoding
-            chmod +x tmp-linux-arm64/thatcoding
-            tar -czvf dist-archives/thatcoding-linux-arm64.tar.gz -C tmp-linux-arm64 thatcoding
-            rm -rf tmp-linux-arm64
+            echo "Packaging Linux ARM64..."
+            cp packages/cli/dist/cli-linux-arm64/bin/opencode dist-linux/thatcoding
+            chmod +x dist-linux/thatcoding
+            tar -czvf dist-archives/thatcoding-linux-arm64.tar.gz -C dist-linux thatcoding
+            rm -f dist-linux/thatcoding
           fi
 
-          # macOS Apple Silicon (ARM64)
+          # ----------------- macOS ARM64 (Apple Silicon) -----------------
           if [ -f packages/cli/dist/cli-darwin-arm64/bin/opencode ]; then
-            mkdir -p tmp-darwin-arm64
-            cp packages/cli/dist/cli-darwin-arm64/bin/opencode tmp-darwin-arm64/thatcoding
-            chmod +x tmp-darwin-arm64/thatcoding
-            tar -czvf dist-archives/thatcoding-darwin-arm64.tar.gz -C tmp-darwin-arm64 thatcoding
-            rm -rf tmp-darwin-arm64
+            echo "Packaging macOS ARM64..."
+            cp packages/cli/dist/cli-darwin-arm64/bin/opencode dist-macos/thatcoding
+            chmod +x dist-macos/thatcoding
+            tar -czvf dist-archives/thatcoding-macos-arm64.tar.gz -C dist-macos thatcoding
+            (cd dist-macos && zip -j ../dist-archives/thatcoding-macos-arm64.zip thatcoding)
+            rm -f dist-macos/thatcoding
           fi
 
-          # macOS Intel (x64)
+          # ----------------- macOS Intel (x64) -----------------
           if [ -f packages/cli/dist/cli-darwin-x64/bin/opencode ]; then
-            mkdir -p tmp-darwin-x64
-            cp packages/cli/dist/cli-darwin-x64/bin/opencode tmp-darwin-x64/thatcoding
-            chmod +x tmp-darwin-x64/thatcoding
-            tar -czvf dist-archives/thatcoding-darwin-x64.tar.gz -C tmp-darwin-x64 thatcoding
-            rm -rf tmp-darwin-x64
+            echo "Packaging macOS x64..."
+            cp packages/cli/dist/cli-darwin-x64/bin/opencode dist-macos/thatcoding
+            chmod +x dist-macos/thatcoding
+            tar -czvf dist-archives/thatcoding-macos-x64.tar.gz -C dist-macos thatcoding
+            (cd dist-macos && zip -j ../dist-archives/thatcoding-macos-x64.zip thatcoding)
+            rm -f dist-macos/thatcoding
           fi
 
-      - name: Upload release archives
+          echo "=== Finished packaging: ==="
+          ls -la dist-archives
+
+      - name: Upload Windows x64 Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: thatcoding-archives
+          name: thatcoding-windows-x64
+          path: |
+            dist-archives/thatcoding-windows-x64.exe
+            dist-archives/thatcoding-windows-x64.zip
+          if-no-files-found: warn
+
+      - name: Upload All Release Archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: thatcoding-all-platforms
           path: dist-archives/*
 
       - name: Create GitHub Release
