@@ -104,6 +104,7 @@ import { CommandPaletteDialog } from "./component/command-palette"
 import { COMMAND_PALETTE_COMMAND, Keymap, type KeymapCommand } from "./context/keymap"
 
 import { DialogVariant } from "./component/dialog-variant"
+import { DialogTerms } from "./component/dialog-terms"
 import { destroyRenderer, setTerminalTitle } from "./util/renderer"
 import { cliErrorMessage, errorFormat } from "./util/error"
 import { AttentionProvider } from "./context/attention"
@@ -536,6 +537,27 @@ function App() {
     void client.api.session
       .environment({ sessionID: session.id, variables: terminalEnvironment.variables })
       .catch(toast.error)
+  })
+  const [termsAgreement, setTermsAgreement] = useStorage().store<{ accepted?: boolean; acceptedAt?: string }>(
+    "terms-agreement",
+    { initial: {} },
+  )
+  let termsChecked = false
+  createEffect(() => {
+    if (termsChecked) return
+    if (!termsAgreement.accepted) {
+      termsChecked = true
+      dialog.replace(() => (
+        <DialogTerms
+          onAccept={() => {
+            void setTermsAgreement((draft) => {
+              draft.accepted = true
+              draft.acceptedAt = new Date().toISOString()
+            })
+          }}
+        />
+      ))
+    }
   })
   const [layout, updateLayout] = useStorage().store<{ verticalTabsWidth?: number }>("layout", {
     initial: { verticalTabsWidth: SESSION_SIDEBAR_WIDTH },

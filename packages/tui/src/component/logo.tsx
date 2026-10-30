@@ -8,6 +8,7 @@ import { go, logo } from "../logo"
 export function Logo() {
   const theme = useTheme()
   const dimensions = useTerminalDimensions()
+  const accentColor = () => theme.hue?.accent?.[200] ?? theme.text.base
 
   const renderLine = (line: string, fg: RGBA, bold: boolean): JSX.Element[] => {
     const shadow = tint(theme.background.base, fg, 0.25)
@@ -53,7 +54,7 @@ export function Logo() {
     <box>
       {dimensions().height < 12 ? null : dimensions().width < 22 ? (
         <For each={go.right.slice(1)}>
-          {(line) => <box flexDirection="row">{renderLine(line, theme.text.base, true)}</box>}
+          {(line) => <box flexDirection="row">{renderLine(line, accentColor(), true)}</box>}
         </For>
       ) : dimensions().width < 54 ? (
         <>
@@ -61,7 +62,7 @@ export function Logo() {
             {(line) => <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>}
           </For>
           <For each={logo.right}>
-            {(line) => <box flexDirection="row">{renderLine(line, theme.text.base, true)}</box>}
+            {(line) => <box flexDirection="row">{renderLine(line, accentColor(), true)}</box>}
           </For>
         </>
       ) : (
@@ -69,7 +70,7 @@ export function Logo() {
           {(line, index) => (
             <box flexDirection="row" gap={1}>
               <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>
-              <box flexDirection="row">{renderLine(logo.right[index()], theme.text.base, true)}</box>
+              <box flexDirection="row">{renderLine(logo.right[index()], accentColor(), true)}</box>
             </box>
           )}
         </For>

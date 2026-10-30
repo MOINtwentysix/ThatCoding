@@ -236,9 +236,20 @@
         "800": "#e4dbfd",
         "900": "#f6f3ff"
       },
-      "accent": "$hue.orange",
+      "accent": "$hue.yellow",
       "interactive": "$hue.blue",
-      "neutral": "$hue.gray"
+      "neutral": "$hue.gray",
+      "yellow": {
+        "100": "#713f12",
+        "200": "#854d0e",
+        "300": "#a16207",
+        "400": "#ca8a04",
+        "500": "#eab308",
+        "600": "#facc15",
+        "700": "#fde047",
+        "800": "#fef08a",
+        "900": "#fef9c3"
+      }
     },
     "categorical": [
       "purple",
@@ -379,9 +390,20 @@
         "800": "#271640",
         "900": "#17072b"
       },
-      "accent": "$hue.purple",
+      "accent": "$hue.yellow",
       "interactive": "$hue.orange",
-      "neutral": "$hue.gray"
+      "neutral": "$hue.gray",
+      "yellow": {
+        "100": "#fef08a",
+        "200": "#fde047",
+        "300": "#eab308",
+        "400": "#ca8a04",
+        "500": "#a16207",
+        "600": "#854d0e",
+        "700": "#713f12",
+        "800": "#422006",
+        "900": "#221102"
+      }
     }
   }
 }
