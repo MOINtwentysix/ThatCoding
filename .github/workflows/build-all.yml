@@ -1,14 +1,17 @@
 name: Build All Platforms
 
 on:
+  push:
+    tags:
+      - "v*"
   workflow_dispatch:
     inputs:
       create_release:
         description: "GitHub Release mit den Binaries erstellen"
         type: boolean
-        default: false
+        default: true
       tag_name:
-        description: "Release-Tag (z. B. v2.2.0-tc)"
+        description: "Release-Tag (z. B. v2.2.0-thatcoding)"
         type: string
         default: "v2.2.0-thatcoding"
 
@@ -142,11 +145,11 @@ jobs:
           path: dist-archives/*
 
       - name: Create GitHub Release
-        if: ${{ inputs.create_release == true }}
+        if: ${{ inputs.create_release != false || startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag_name }}
-          name: ${{ inputs.tag_name }}
+          tag_name: ${{ inputs.tag_name || github.ref_name }}
+          name: ${{ inputs.tag_name || github.ref_name }}
           draft: false
           prerelease: false
           files: dist-archives/*
