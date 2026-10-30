@@ -189,9 +189,9 @@ const make = Effect.gen(function* () {
 
   const curlPath = path.resolve(
     global.home,
-    ".opencode",
+    ".thatcoding",
     "bin",
-    process.platform === "win32" ? "opencode.exe" : "opencode",
+    process.platform === "win32" ? "thatcoding.exe" : "thatcoding",
   )
   const curlBinary = yield* fs.realPath(curlPath).pipe(Effect.orElseSucceed(() => curlPath))
 
@@ -212,7 +212,15 @@ const make = Effect.gen(function* () {
   })
 
   const method = Effect.fnUntraced(function* () {
-    if (executable === curlBinary) return "curl"
+    if (
+      executable === curlBinary ||
+      executable.includes(".thatcoding") ||
+      executable.endsWith("tac") ||
+      executable.endsWith("tac.exe") ||
+      executable.endsWith("thatcoding") ||
+      executable.endsWith("thatcoding.exe")
+    )
+      return "curl"
     if (installedFormula) return "brew"
     if (installedWinget) return "winget"
     if (!installedPackage) return
@@ -273,25 +281,18 @@ const make = Effect.gen(function* () {
   }
 
   const release = Effect.fnUntraced(function* (method?: Method) {
-    const distribution = method === "brew" ? "homebrew" : "npm"
-    // Homebrew Core builds its formula on its own schedule, so the tap release does not describe it.
-    const core = method === "brew" && installedFormula === "opencode"
     const response = yield* Effect.tryPromise({
       try: (signal) =>
-        fetch(
-          core
-            ? "https://formulae.brew.sh/api/formula/opencode.json"
-            : `https://opencode.ai/update/api/${encodeURIComponent(channel)}/${encodeURIComponent(OPENCODE_ARTIFACT)}/${distribution}?current=${encodeURIComponent(OPENCODE_VERSION)}`,
-          {
-            signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
-          },
-        ),
+        fetch("https://api.github.com/repos/MOINtwentysix/ThatCoding/releases", {
+          signal: AbortSignal.any([signal, AbortSignal.timeout(10_000)]),
+          headers: { "User-Agent": "ThatCoding-Updater" },
+        }),
       catch: (cause) =>
         new UpgradeError(
           {
-            title: "Could not check for OpenCode updates",
+            title: "Could not check for ThatCoding updates",
             detail: errorDetail(cause),
-            retry: "Check your network, then run opencode upgrade again.",
+            retry: "Check your network, then run tac upgrade again.",
           },
           { cause },
         ),
@@ -299,30 +300,30 @@ const make = Effect.gen(function* () {
     if (!response.ok)
       return yield* Effect.fail(
         new UpgradeError({
-          title: "Could not check for OpenCode updates",
+          title: "Could not check for ThatCoding updates",
           detail: `The update service returned HTTP ${response.status}.`,
           retry: "Try again in a few minutes.",
         }),
       )
-    const data: { version?: string; metadata?: { package?: string }; versions?: { stable?: string } } =
-      yield* Effect.tryPromise({
-        try: () => response.json(),
-        catch: (cause) =>
-          new UpgradeError(
-            {
-              title: "Could not read the OpenCode update information",
-              detail: errorDetail(cause),
-              retry: "Try again in a few minutes.",
-            },
-            { cause },
-          ),
-      })
-    const version = core ? data.versions?.stable : data.version
-    const packageName = core ? "opencode" : data.metadata?.package
-    if (!version || !packageName)
+    const releases: Array<{ tag_name?: string }> = yield* Effect.tryPromise({
+      try: () => response.json(),
+      catch: (cause) =>
+        new UpgradeError(
+          {
+            title: "Could not read the ThatCoding update information",
+            detail: errorDetail(cause),
+            retry: "Try again in a few minutes.",
+          },
+          { cause },
+        ),
+    })
+    const latestRelease = Array.isArray(releases) && releases.length > 0 ? releases[0] : undefined
+    const version = latestRelease?.tag_name ? latestRelease.tag_name.replace(/^v/, "") : undefined
+    const packageName = "thatcoding"
+    if (!version)
       return yield* Effect.fail(
         new UpgradeError({
-          title: "Could not read the OpenCode update information",
+          title: "Could not read the ThatCoding update information",
           detail: "The update service returned incomplete release information.",
           retry: "Try again in a few minutes.",
         }),
@@ -479,18 +480,18 @@ const make = Effect.gen(function* () {
           const installer = path.join(directory, "install")
           yield* runUpgrade({
             method,
-            command: ["curl", "-fsSL", "-o", installer, "https://opencode.ai/v2/install"],
-            displayCommand: ["curl", "-fsSL", "https://opencode.ai/v2/install"],
-            title: "Could not download the OpenCode installer",
+            command: ["curl", "-fsSL", "-o", installer, "https://coding.moin26.dev/download/cli"],
+            displayCommand: ["curl", "-fsSL", "https://coding.moin26.dev/download/cli"],
+            title: "Could not download the ThatCoding installer",
             retry: "Check your network, then run opencode upgrade again.",
           })
           return yield* retaining(
             method,
             runUpgrade({
               method,
-              command: [bash, installer, "--version", version, "--no-modify-path"],
-              displayCommand: ["opencode", "upgrade", version, "--method", "curl"],
-              title: "The OpenCode installer failed",
+              command: [bash, installer, "--version", version],
+              displayCommand: ["tac", "upgrade", version, "--method", "curl"],
+              title: "The ThatCoding installer failed",
             }),
           )
         }

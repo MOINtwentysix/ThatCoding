@@ -34,7 +34,7 @@ const IS_PREVIEW = CHANNEL !== "latest"
 
 // The release workflow's plan job owns release versions; builds only read them.
 const VERSION = (() => {
-  if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION
+  if (env.OPENCODE_VERSION) return env.OPENCODE_VERSION.replace(/^v/, "")
   if (!IS_PREVIEW) throw new Error("OPENCODE_VERSION is required for latest-channel builds")
   return `0.0.0-${CHANNEL}-${previewBuildNumber()}`
 })()

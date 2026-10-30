@@ -46,6 +46,15 @@ jobs:
           mkdir -p .cache/models-catalog
           bun packages/core/script/update-models-snapshot.ts .cache/models-catalog/api.json
 
+      - name: Determine version
+        id: version
+        run: |
+          TAG="${{ inputs.tag_name || github.ref_name }}"
+          if [ -z "$TAG" ] || [ "$TAG" = "dev" ] || [ "$TAG" = "main" ]; then
+            TAG="v1.0.0-beta-2"
+          fi
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
       - name: Build for all operating systems
         working-directory: packages/cli
         run: bun run build && rm -rf dist/.bun
@@ -53,6 +62,8 @@ jobs:
           BUN_COMPILE_RELEASE: bun-v1.4.4
           OPENCODE_MODELS_SNAPSHOT: ${{ github.workspace }}/.cache/models-catalog/api.json
           GH_TOKEN: ${{ github.token }}
+          OPENCODE_VERSION: ${{ steps.version.outputs.tag }}
+          OPENCODE_CHANNEL: latest
 
       - name: Inspect build output
         run: |
@@ -148,8 +159,8 @@ jobs:
         if: ${{ inputs.create_release != false || startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.tag_name || github.ref_name }}
-          name: ${{ inputs.tag_name || github.ref_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           draft: false
           prerelease: false
           files: dist-archives/*

@@ -52,20 +52,7 @@ export function Logo() {
 
   return (
     <box>
-      {dimensions().height < 12 ? null : dimensions().width < 22 ? (
-        <For each={go.right.slice(1)}>
-          {(line) => <box flexDirection="row">{renderLine(line, accentColor(), true)}</box>}
-        </For>
-      ) : dimensions().width < 54 ? (
-        <>
-          <For each={logo.left}>
-            {(line) => <box flexDirection="row">{renderLine(line, theme.text.muted, false)}</box>}
-          </For>
-          <For each={logo.right}>
-            {(line) => <box flexDirection="row">{renderLine(line, accentColor(), true)}</box>}
-          </For>
-        </>
-      ) : (
+      {dimensions().height < 10 ? null : (
         <For each={logo.left}>
           {(line, index) => (
             <box flexDirection="row" gap={1}>

@@ -45,7 +45,7 @@ export function DialogModel(props: { providerID?: string }) {
 
   return (
     <Show
-      when={newDesigns() && !connected() && !props.providerID}
+      when={false}
       fallback={<DialogConnectedModels providerID={props.providerID} onSelect={select} onConnect={connect} />}
     >
       <DialogFreeModels onSelect={select} onConnect={connect} />
