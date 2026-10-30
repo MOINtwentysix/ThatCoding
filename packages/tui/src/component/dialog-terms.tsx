@@ -114,10 +114,10 @@ export function DialogTerms(props: { onAccept: () => void }) {
           </box>
         </box>
         <text fg={theme.text.muted}>
-          Drücke <text fg={theme.hue.accent[200] ?? theme.text.base}>1</text> oder <text fg={theme.hue.accent[200] ?? theme.text.base}>2</text>, um die Links direkt im Browser zu öffnen.
+          Drücke [1] oder [2], um die Links direkt im Browser zu öffnen.
         </text>
         <text fg={theme.text.muted}>
-          Mit <text fg={theme.text.base} attributes={TextAttributes.BOLD}>Enter</text> stimmst du zu, mit <text fg={theme.text.base} attributes={TextAttributes.BOLD}>Esc</text> beendest du die Anwendung.
+          Mit Enter stimmst du zu, mit Esc beendest du die Anwendung.
         </text>
       </box>
     </DialogLayout>
